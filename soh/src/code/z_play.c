@@ -2090,10 +2090,20 @@ void Play_SetupRespawnPoint(PlayState* play, s32 respawnMode, s32 playerParams) 
 
     if ((play->sceneNum != SCENE_YOUSEI_IZUMI_TATE) && (play->sceneNum != SCENE_KAKUSIANA)) {
         roomIndex = play->roomCtx.curRoom.num;
+
         entranceIndex = gSaveContext.entranceIndex;
+
+        //OGC Respawn Softlock Fix
+        if (!Flags_GetEventChkInf(0x4D) && entranceIndex == 0x023D && LINK_IS_ADULT) {
+            player->actor.world.pos.z = 652.0f;
+            gSaveContext.entranceSpeed = 0.0f;
+        }
+
         Play_SetRespawnData(play, respawnMode, entranceIndex, roomIndex, playerParams,
                                 &player->actor.world.pos, player->actor.shape.rot.y);
     }
+
+    
 }
 
 void Play_TriggerVoidOut(PlayState* play) {
@@ -2102,12 +2112,14 @@ void Play_TriggerVoidOut(PlayState* play) {
     gSaveContext.respawnFlag = 1;
     play->sceneLoadFlag = 0x14;
     play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex;
+
     play->fadeTransition = 2;
 }
 
 void Play_LoadToLastEntrance(PlayState* play) {
     gSaveContext.respawnFlag = -1;
     play->sceneLoadFlag = 0x14;
+    
 
     if ((play->sceneNum == SCENE_GANON_SONOGO) || (play->sceneNum == SCENE_GANON_FINAL) ||
         (play->sceneNum == SCENE_GANONTIKA_SONOGO) || (play->sceneNum == SCENE_GANON_DEMO)) {
@@ -2116,10 +2128,11 @@ void Play_LoadToLastEntrance(PlayState* play) {
     } else if ((gSaveContext.entranceIndex == 0x028A) || (gSaveContext.entranceIndex == 0x028E) ||
                (gSaveContext.entranceIndex == 0x0292) || (gSaveContext.entranceIndex == 0x0476)) {
         play->nextEntranceIndex = 0x01F9;
+    } else if (gSaveContext.entranceIndex == 0x023D) {
+        play->nextEntranceIndex = 0x138; //Ganon's Castle Fix
     } else {
         play->nextEntranceIndex = gSaveContext.entranceIndex;
     }
-
     play->fadeTransition = 2;
 }
 

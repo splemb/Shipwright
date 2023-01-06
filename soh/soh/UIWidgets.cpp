@@ -332,7 +332,8 @@ namespace UIWidgets {
 #elif defined(__WIIU__)
             ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f * 2);
 #else
-            ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f);
+            //ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f);
+            ImGui::PushItemWidth(ImGui::GetWindowSize().x - 99.0f);
 #endif
         }
         if (ImGui::SliderInt(id, &val, min, max, format))
@@ -425,7 +426,8 @@ namespace UIWidgets {
         #elif defined(__WIIU__)
             ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f * 2);
         #else
-            ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f);
+            //ImGui::PushItemWidth(ImGui::GetWindowSize().x - 79.0f);
+            ImGui::PushItemWidth(ImGui::GetWindowSize().x - 99.0f);
         #endif
         }
         if (ImGui::SliderFloat(id, &val, min, max, format)) {
