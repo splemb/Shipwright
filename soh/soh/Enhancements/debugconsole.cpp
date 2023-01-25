@@ -8,6 +8,8 @@
 #include <string>
 #include "soh/OTRGlobals.h"
 #include <soh/Enhancements/item-tables/ItemTableManager.h>
+#include "soh/Enhancements/cosmetics/CosmeticsEditor.h"
+#include "soh/Enhancements/sfx-editor/SfxEditor.h"
 
 
 #define Path _Path
@@ -387,14 +389,52 @@ static bool ReloadHandler(std::shared_ptr<Ship::Console> Console, const std::vec
     return CMD_SUCCESS;
 }
 
+const static std::map<std::string, uint16_t> fw_options {
+    { "clear", 0}, {"warp", 1}, {"nackup", 2}
+};
+
 static bool FWHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args) {
+    if (args.size() != 2) {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Unexpected arguments passed");
+        return CMD_FAILED;
+    }
+
+    const auto& it = fw_options.find(args[1]);
+    if (it == fw_options.end()) {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Invalid option. Options are 'clear', 'warp', 'backup'");
+        return CMD_FAILED;
+    }
+    
     if (gPlayState != nullptr) {
-        if (gSaveContext.respawn[RESPAWN_MODE_TOP].data > 0) {
-                gPlayState->sceneLoadFlag = 0x14;
-                gPlayState->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex;
-                gPlayState->fadeTransition = 5;
-        } else {
-            SohImGui::GetConsole()->SendErrorMessage("Farore's wind not set!");
+        FaroresWindData clear = {};
+        switch(it->second) {
+            case 0: //clear
+                gSaveContext.fw = clear;
+                SohImGui::GetConsole()->SendInfoMessage("[SOH] Farore's wind point cleared! Reload scene to take effect.");
+                return CMD_SUCCESS;
+                break;
+            case 1: //warp
+                if (gSaveContext.respawn[RESPAWN_MODE_TOP].data > 0) {
+                    gPlayState->sceneLoadFlag = 0x14;
+                    gPlayState->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex;
+                    gPlayState->fadeTransition = 5;
+                } else {
+                    SohImGui::GetConsole()->SendErrorMessage("Farore's wind not set!");
+                    return CMD_FAILED;
+                }
+                return CMD_SUCCESS;
+                break;
+            case 2: //backup
+                if (CVarGetInteger("gBetterFW", 0)) {
+                    gSaveContext.fw = gSaveContext.backupFW;
+                    gSaveContext.fw.set = 1;
+                    SohImGui::GetConsole()->SendInfoMessage("[SOH] Backup FW data copied! Reload scene to take effect.");
+                    return CMD_SUCCESS;
+                } else {
+                    SohImGui::GetConsole()->SendErrorMessage("Better Farore's Wind isn't turned on!");
+                    return CMD_FAILED;
+                }
+                break;
         }
     }
     else {
@@ -906,6 +946,42 @@ static bool CuccoStormHandler(std::shared_ptr<Ship::Console> Console, const std:
     return CMD_SUCCESS;
 }
 
+static bool CosmeticsHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args) {
+    if (args.size() != 2) {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Unexpected arguments passed");
+        return CMD_FAILED;
+    }
+
+    if (args[1].compare("reset") == 0) {
+        CosmeticsEditor_ResetAll();
+    } else if (args[1].compare("randomize") == 0) {
+        CosmeticsEditor_RandomizeAll();
+    } else {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Invalid argument passed, must be 'reset' or 'randomize'");
+        return CMD_FAILED;
+    }
+
+    return CMD_SUCCESS;
+}
+
+static bool SfxHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args) {
+    if (args.size() != 2) {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Unexpected arguments passed");
+        return CMD_FAILED;
+    }
+
+    if (args[1].compare("reset") == 0) {
+        SfxEditor_ResetAll();
+    } else if (args[1].compare("randomize") == 0) {
+        SfxEditor_RandomizeAll();
+    } else {
+        SohImGui::GetConsole()->SendErrorMessage("[SOH] Invalid argument passed, must be 'reset' or 'randomize'");
+        return CMD_FAILED;
+    }
+
+    return CMD_SUCCESS;
+}
+
 #define VARTYPE_INTEGER 0
 #define VARTYPE_FLOAT   1
 #define VARTYPE_STRING  2
@@ -1008,7 +1084,9 @@ void DebugConsole_Init(void) {
     // Map & Location
     CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
     CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
-    CMD_REGISTER("fw", { FWHandler,"Spawns the player where Farore's Wind is set." });
+    CMD_REGISTER("fw", { FWHandler,"Spawns the player where Farore's Wind is set." , {
+        { "clear|warp|backup", Ship::ArgumentType::TEXT }
+    }});
     CMD_REGISTER("entrance", { EntranceHandler, "Sends player to the entered entrance (hex)", {
         { "entrance", Ship::ArgumentType::NUMBER }
     }});
@@ -1158,6 +1236,14 @@ void DebugConsole_Init(void) {
     CMD_REGISTER("burn", { BurnHandler, "Burns Link." });
 
     CMD_REGISTER("cucco_storm", { CuccoStormHandler, "Cucco Storm" });
+
+    CMD_REGISTER("cosmetics", { CosmeticsHandler, "Change cosmetics.", {
+        { "reset|randomize", Ship::ArgumentType::TEXT },
+    }});
+
+    CMD_REGISTER("sfx", { SfxHandler, "Change SFX.", {
+        { "reset|randomize", Ship::ArgumentType::TEXT },
+    }});
 
     CVarLoad();
 }
