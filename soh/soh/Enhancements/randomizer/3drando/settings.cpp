@@ -19,7 +19,7 @@ using namespace Music;
 using namespace SFX;
 
 namespace Settings {
-  std::string seed;
+  uint32_t seed;
   std::string hash;
   std::string version = RANDOMIZER_VERSION "-" COMMIT_NUMBER;
   std::array<uint8_t, 5> hashIconIndexes;
@@ -2963,6 +2963,13 @@ namespace Settings {
     }
     for (uint8_t i = 0; i < GanonsTrialsCount.Value<uint8_t>(); i++) {
       trials[i]->SetAsRequired();
+    }
+
+    // If any ER option is on that would allow you to escape forest, then we should set closed forest to closed deku
+    if (OpenForest.Is(OPENFOREST_CLOSED) &&
+        (ShuffleInteriorEntrances.Is(SHUFFLEINTERIORS_ALL) || ShuffleOverworldEntrances || ShuffleOverworldSpawns ||
+         DecoupleEntrances || MixedEntrancePools)) {
+        OpenForest.SetSelectedIndex(OPENFOREST_CLOSED_DEKU);
     }
 
     if (StartingAge.Is(AGE_RANDOM)) {
