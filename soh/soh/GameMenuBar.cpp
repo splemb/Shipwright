@@ -670,6 +670,9 @@ namespace GameMenuBar {
                 UIWidgets::PaddedEnhancementCheckbox("Disable Crit wiggle", "gDisableCritWiggle", true, false);
                 UIWidgets::Tooltip("Disable random camera wiggle at low health");
 
+                UIWidgets::PaddedEnhancementCheckbox("Enhanced Movement", "gEnhancedMovement", true, false);
+                UIWidgets::Tooltip("Adds jumping and adjusts gravity and speed");
+
                 ImGui::EndMenu();
             }
 
