@@ -4050,8 +4050,17 @@ void func_80838940(Player* this, LinkAnimationHeader* anim, f32 arg2, PlayState*
     }
 
     this->actor.velocity.y = arg2 * D_808535E8;
+
+    if (CVarGetInteger("gEnhancedMovement", 0)) {
+        this->actor.velocity.y *= 1.25f;
+    }
+
     this->hoverBootsTimer = 0;
     this->actor.bgCheckFlags &= ~1;
+
+    if (CVarGetInteger("gEnhancedMovement", 0) && this->linearVelocity < 8.0f) {
+        this->linearVelocity = 8.0f;
+    }
 
     func_80832854(this);
     func_80832698(this, sfxId);
@@ -5306,6 +5315,12 @@ s32 func_8083BBA0(Player* this, PlayState* play) {
 
 void func_8083BC04(Player* this, PlayState* play) {
     func_80835C58(play, this, func_80844708, 0);
+
+    if (CVarGetInteger("gEnhancedMovement", 0)) {
+        this->currentYaw = this->actor.shape.rot.y; // Fix neutral roll bug, sorry speedrunners
+        this->linearVelocity = 10.0f;               // Neutral rolls have enough speed to bonk
+    }
+
     LinkAnimation_PlayOnceSetSpeed(play, &this->skelAnime, D_80853914[PLAYER_ANIMGROUP_16][this->modelAnimType],
                                    1.25f * D_808535E8);
     gSaveContext.sohStats.count[COUNT_ROLLS]++;
@@ -5313,7 +5328,11 @@ void func_8083BC04(Player* this, PlayState* play) {
 
 s32 func_8083BC7C(Player* this, PlayState* play) {
     if ((this->unk_84B[this->unk_846] == 0) && (D_808535E4 != 7)) {
-        func_8083BC04(this, play);
+        if (CVarGetInteger("gEnhancedMovement", 0)) {
+            func_80838940(this, D_80853D4C[0][0], 8.8f, play, NA_SE_VO_LI_SWORD_N);
+        } else {
+            func_8083BC04(this, play);
+        }
         return 1;
     }
 
@@ -5321,7 +5340,11 @@ s32 func_8083BC7C(Player* this, PlayState* play) {
 }
 
 void func_8083BCD0(Player* this, PlayState* play, s32 arg2) {
-    func_80838940(this, D_80853D4C[arg2][0], !(arg2 & 1) ? 5.8f : 3.5f, play, NA_SE_VO_LI_SWORD_N);
+    if (CVarGetInteger("gEnhancedMovement", 0)) {
+        func_80838940(this, D_80853D4C[arg2][0], !(arg2 & 1) ? 8.8f : 3.5f, play, NA_SE_VO_LI_SWORD_N);
+    } else {
+        func_80838940(this, D_80853D4C[arg2][0], !(arg2 & 1) ? 5.8f : 3.5f, play, NA_SE_VO_LI_SWORD_N);
+    }
 
     if (arg2) {}
 
@@ -5344,7 +5367,7 @@ s32 func_8083BDBC(Player* this, PlayState* play) {
         (SurfaceType_GetSlope(&play->colCtx, this->actor.floorPoly, this->actor.floorBgId) != 1)) {
         sp2C = this->unk_84B[this->unk_846];
 
-        if (sp2C <= 0) {
+        if (CVarGetInteger("gEnhancedMovement", 0) ? sp2C < 0 : sp2C <= 0) {
             if (func_80833BCC(this)) {
                 if (this->actor.category != ACTORCAT_PLAYER) {
                     if (sp2C < 0) {
@@ -5352,12 +5375,14 @@ s32 func_8083BDBC(Player* this, PlayState* play) {
                     } else {
                         func_8083BC04(this, play);
                     }
-                } else {
+                } else if (!CVarGetInteger("gEnhancedMovement", 0)) {
                     if (Player_GetSwordHeld(this) && func_808365C8(this)) {
                         func_8083BA90(play, this, 17, 5.0f, 5.0f);
                     } else {
                         func_8083BC04(this, play);
                     }
+                } else {
+                    func_8083BC04(this, play);
                 }
                 return 1;
             }
@@ -5917,7 +5942,7 @@ void func_8083D6EC(PlayState* play, Player* this) {
     f32 temp4;
 
     this->actor.minVelocityY = -20.0f;
-    this->actor.gravity = REG(68) / 100.0f;
+    this->actor.gravity = REG(68) / (CVarGetInteger("gEnhancedMovement", 0) ? 80.0f : 100.0f);
 
     if (func_8083816C(D_808535E4)) {
         temp1 = fabsf(this->linearVelocity) * 20.0f;
@@ -6085,6 +6110,10 @@ void func_8083DFE0(Player* this, f32* arg1, s16* arg2) {
 
     if (this->swordState == 0) {
         float maxSpeed = R_RUN_SPEED_LIMIT / 100.0f;
+
+        if (CVarGetInteger("gEnhancedMovement", 0)) {
+            maxSpeed *= 1.2f;
+        }
 
         int32_t giSpeedModifier = GameInteractor_RunSpeedModifier();
         if (giSpeedModifier != 0) {
@@ -7731,6 +7760,10 @@ void func_80842180(Player* this, PlayState* play) {
                 } else {
                     sp2C /= abs(giSpeedModifier);
                 }
+            }
+
+            if (CVarGetInteger("gEnhancedMovement", 0)) {
+                sp2C *= 1.2f;
             }
 
             if (CVarGetInteger("gMMBunnyHood", 0) && this->currentMask == PLAYER_MASK_BUNNY) {
@@ -9878,7 +9911,7 @@ void func_808473D4(PlayState* play, Player* this) {
                           ((D_808535E4 != 7) && (func_80833B2C(this) ||
                                                  ((play->roomCtx.curRoom.behaviorType1 != ROOM_BEHAVIOR_TYPE1_2) &&
                                                   !(this->stateFlags1 & PLAYER_STATE1_22) && (sp20 == 0))))))) {
-                        doAction = DO_ACTION_ATTACK;
+                        doAction = !CVarGetInteger("gEnhancedMovement", 0) ? DO_ACTION_ATTACK : DO_ACTION_JUMP;
                     } else if ((play->roomCtx.curRoom.behaviorType1 != ROOM_BEHAVIOR_TYPE1_2) &&
                                func_80833BCC(this) && (sp20 > 0)) {
                         doAction = DO_ACTION_JUMP;
